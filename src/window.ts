@@ -15,7 +15,7 @@ export enum SW {
   SW_MINIMIZE = 6,
 }
 type keys = 96 | 120 | 144 | 192
-const result: Record<keys, number> = {
+const DPI: Record<keys, number> = {
   96: 1,
   120: 1.25,
   144: 1.5,
@@ -35,13 +35,25 @@ const dlls = ffi.Library('user32', {
   EnumWindows: ['bool', ['pointer', 'int']],
   ShowWindow: ['bool', ['int', 'int']],
   GetDpiForWindow: ['int', ['int']],
+  SetLayeredWindowAttributes: ['bool', ['int', 'int', 'uchar', 'int']],
+  SetWindowLongA: ['long', ['int', 'int', 'long']],
+  GetWindowLongA: ['long', ['int', 'int']],
 })
 
 export function GetProgmanDpi() {
   const hProgman = dlls.FindWindowW(L('Progman') as unknown as string, null) as number
   const zoom = dlls.GetDpiForWindow(hProgman) as keys
-  return result[zoom]
+  return DPI[zoom]
 }
+
+export function SetLayeredWindowAttributes(hwnd: number) {
+  dlls.SetWindowLongA(hwnd, -20, (dlls.GetWindowLongA(hwnd, -20) as number) | 0x00080000)
+
+  const result = dlls.SetLayeredWindowAttributes(hwnd, 0, 50, 0x00000002)
+  console.log(result)
+  return result
+}
+
 export function SetWallpaper(displayHwnd?: number) {
   const hProgman = dlls.FindWindowW(L('Progman') as unknown as string, null) as number
   dlls.PostMessageW(hProgman, 0x52C, 0, 0)
